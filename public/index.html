@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Temporary File Sharing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: #007cba;
+        }
+        
+        .upload-area.dragover {
+            border-color: #007cba;
+            background-color: #f0f8ff;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: #007cba;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .upload-btn:hover {
+            background: #005a87;
+        }
+
+        .upload-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .expiry-highlight {
+            background-color: #fff3cd; /* Light yellow background */
+            border: 1px solid #ffeaa7; /* Light border */
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #856404; /* Darker text color for contrast */
+        }
+
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .copy-btn.copied {
+            background: #1e7e34;
+        }
+        
+        .ttl-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .ttl-selector label {
+            margin-right: 10px;
+        }
+        
+        .ttl-selector select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        
+        .upload-progress {
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .result.success {
+            background-color: #dff0d8;
+            border: 1px solid #d6e9c6;
+            color: #3c763d;
+        }
+
+        .result p {
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .result.error {
+            background-color: #f2dede;
+            border: 1px solid #ebccd1;
+            color: #a94442;
+        }
+        
+        .share-link {
+            word-break: break-word;
+            overflow-wrap: break-word;
+            margin-top: 10px;
+        }
+        
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .copy-btn.copied {
+            background: #1e7e34;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .upload-area {
+                padding: 20px;
+            }
+
+            .ttl-selector {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .ttl-selector label {
+                margin-bottom: 5px;
+            }
+
+            .ttl-selector select, .upload-btn {
+                margin-left: 0 !important; /* Override inline style */
+                margin-top: 5px;
+            }
+
+            .share-link {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .copy-btn {
+                margin-left: 0;
+                margin-top: 5px;
+                align-self: flex-start; /* Align button to the start */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Free Temporary File Sharing</h1>
+        
+        <div class="info-box">
+            <strong>Important:</strong> This service requires no login for downloads. Files may be removed from cache before the selected expiration time. Please download your files promptly.
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <p>Drag & drop your file here or click to browse</p>
+            <input type="file" id="fileInput" class="file-input" />
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Select File</button>
+        </div>
+        
+        <div class="ttl-selector">
+            <label for="ttlSelect">Select expiration time:</label>
+            <select id="ttlSelect">
+                <option value="300">5 minutes</option>
+                <option value="600">10 minutes</option>
+                <option value="1800">30 minutes</option>
+                <option value="3600">1 hour</option>
+                <option value="21600">6 hours</option>
+                <option value="86400">24 hours</option>
+                <option value="604800">7 days</option>
+            </select>
+            <button class="upload-btn" id="triggerUploadBtn" disabled style="margin-left: 10px;">Upload File</button>
+        </div>
+        <div id="fileNameDisplay" style="margin-top: 10px; font-style: italic; color: #666; word-break: break-all; overflow-wrap: break-word; max-width: 100%; padding: 5px 0;"></div>
+
+        <div class="upload-progress" id="uploadProgress">
+            <div style="margin-bottom: 5px; font-weight: bold;">Uploading...</div>
+            <div style="display: flex; align-items: center;">
+                <div class="progress-bar" style="flex: 1; margin-right: 10px;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressPercent" style="min-width: 40px; text-align: right; font-weight: bold;">0%</div>
+            </div>
+        </div>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('progressFill');
+            const resultDiv = document.getElementById('result');
+            
+            // Handle drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // Handle file selection
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFile(e.target.files[0]);
+                } else {
+                    // Disable upload button if no file is selected
+                    triggerUploadBtn.disabled = true;
+                    // Clear file name display
+                    document.getElementById('fileNameDisplay').textContent = '';
+                }
+            });
+
+            // Add click event listener to the upload button
+            triggerUploadBtn.addEventListener('click', function() {
+                const file = fileInput.files[0];
+                if (file) {
+                    uploadFile(file);
+                } else {
+                    showError('No file selected.');
+                }
+            });
+            
+            function handleFile(file) {
+                if (!file) return;
+                
+                // Check file size (limit to 99MB based on Cloudflare Pages Functions request size constraints)
+                const maxSize = 99 * 1024 * 1024; // 99MB
+                if (file.size > maxSize) {
+                    showError(`File too large. Maximum size is 99MB. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB.`);
+                    triggerUploadBtn.disabled = true; // Ensure button stays disabled on error
+                    // Clear file name display on error
+                    document.getElementById('fileNameDisplay').textContent = '';
+                    return;
+                }
+                
+                // Enable the upload button to indicate the file is ready to be uploaded
+                triggerUploadBtn.disabled = false;
+                
+                // Display the file name
+                document.getElementById('fileNameDisplay').textContent = `Selected file: ${file.name}`;
+            }
+            
+            function uploadFile(file) {
+                // Double-check file exists and size before uploading (in case button is clicked without proper setup)
+                if (!file) {
+                    showError('No file selected for upload.');
+                    return;
+                }
+                
+                const maxSize = 99 * 1024 * 1024; // 99MB
+                if (file.size > maxSize) {
+                    showError(`File too large. Maximum size is 99MB. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB.`);
+                    return;
+                }
+                
+                showProgress();
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Get selected TTL and append to form data
+                const ttlSelect = document.getElementById('ttlSelect');
+                const ttl = parseInt(ttlSelect.value);
+                formData.append('ttl', ttl.toString());
+
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+
+                    // Store file size to pass to success handler
+                    const fileSize = file.size;
+
+                    xhr.upload.addEventListener('progress', (event) => {
+                        if (event.lengthComputable) {
+                            const percentComplete = (event.loaded / event.total) * 100;
+                            updateProgress(percentComplete);
+                        }
+                    });
+
+                    xhr.addEventListener('load', () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                if (data.success) {
+                                    // Add file size to the response data
+                                    data.fileSize = fileSize;
+                                    resolve(data);
+                                } else {
+                                    reject(new Error(data.error || 'Upload failed'));
+                                }
+                            } catch (e) {
+                                reject(new Error('Invalid response format'));
+                            }
+                        } else {
+                            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+                        }
+                    });
+
+                    xhr.addEventListener('error', () => {
+                        reject(new Error('Network error occurred'));
+                    });
+
+                    xhr.addEventListener('abort', () => {
+                        reject(new Error('Upload was aborted'));
+                    });
+
+                    xhr.open('POST', '/api/upload');
+                    xhr.send(formData);
+                }).then(data => {
+                    showSuccess(data);
+                }).catch(error => {
+                    console.error('Upload error:', error);
+                    showError(`Upload failed: ${error.message}`);
+                });
+            }
+            
+            function showProgress() {
+                uploadProgress.style.display = 'block';
+                resultDiv.style.display = 'none';
+                progressFill.style.width = '0%';
+            }
+            
+            function updateProgress(percent) {
+                progressFill.style.width = percent + '%';
+                const progressPercentElement = document.getElementById('progressPercent');
+                if (progressPercentElement) {
+                    progressPercentElement.textContent = Math.round(percent) + '%';
+                }
+            }
+            
+            function showSuccess(data) {
+                uploadProgress.style.display = 'none';
+                resultDiv.className = 'result success';
+                resultDiv.style.display = 'block';
+
+                // Calculate expiration time
+                const uploadTime = new Date().getTime() / 1000; // Current time in seconds
+                const expirationTime = uploadTime + data.ttl;
+                const expirationDate = new Date(expirationTime * 1000);
+
+                // Format file size (use KB for < 1MB, otherwise MB)
+                let fileSizeString;
+                if (data.fileSize < 1024 * 1024) {
+                    const fileSizeKB = (data.fileSize / 1024).toFixed(2);
+                    fileSizeString = `${fileSizeKB}KB`;
+                } else {
+                    const fileSizeMB = (data.fileSize / (1024 * 1024)).toFixed(2);
+                    fileSizeString = `${fileSizeMB}MB`;
+                }
+
+                resultDiv.innerHTML = `
+                    <h3>Upload Successful!</h3>
+                    <p>Your file "${data.fileName} (${fileSizeString})" has been uploaded.</p>
+                    <p>Share this link:</p>
+                    <div class="share-link">
+                        <a href="${data.downloadUrl}" target="_blank">${data.downloadUrl}</a>
+                        <button class="copy-btn" onclick="copyToClipboard('${data.downloadUrl}', this)">Copy Link</button>
+                    </div>
+                    <p><small>Expires at: <span class="expiry-highlight" id="expiryTime">${expirationDate.toLocaleString()}</span> (<span id="countdown" style="color: #dc3545; font-weight: bold;">${formatTtl(data.ttl)}</span>)</small></p>
+                `;
+
+                // Start the countdown
+                startCountdown(expirationTime);
+            }
+            
+            function showError(message) {
+                uploadProgress.style.display = 'none';
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<h3>Error</h3><p>${message}</p>`;
+            }
+            
+            function formatTtl(seconds) {
+                if (seconds < 0) {
+                    return 'Expired';
+                }
+                if (seconds < 60) {
+                    return `${seconds} seconds`;
+                } else if (seconds < 3600) {
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    return secs > 0 ? `${mins}m ${secs}s` : `${mins} minutes`;
+                } else if (seconds < 86400) {
+                    const hrs = Math.floor(seconds / 3600);
+                    const mins = Math.floor((seconds % 3600) / 60);
+                    return mins > 0 ? `${hrs}h ${mins}m` : `${hrs} hours`;
+                } else if (seconds < 604800) {
+                    const days = Math.floor(seconds / 86400);
+                    const hrs = Math.floor((seconds % 86400) / 3600);
+                    return hrs > 0 ? `${days}d ${hrs}h` : `${days} days`;
+                } else {
+                    const weeks = Math.floor(seconds / 604800);
+                    const days = Math.floor((seconds % 604800) / 86400);
+                    return days > 0 ? `${weeks}w ${days}d` : `${weeks} weeks`;
+                }
+            }
+
+            function startCountdown(expirationTime) {
+                const countdownElement = document.getElementById('countdown');
+                if (!countdownElement) {
+                    console.error('Countdown element not found');
+                    return;
+                }
+
+                const updateCountdown = () => {
+                    const now = Math.floor(new Date().getTime() / 1000);
+                    const remaining = expirationTime - now;
+
+                    if (remaining <= 0) {
+                        countdownElement.textContent = 'Expired';
+                        countdownElement.style.color = '#6c757d'; // Grey color for expired
+                        clearInterval(countdownInterval);
+                        return;
+                    }
+
+                    // Format remaining time as HH:MM:SS if > 24h, otherwise use formatTtl
+                    let formattedTime;
+                    if (remaining > 86400) { // More than 24 hours
+                        formattedTime = formatTtl(remaining);
+                    } else {
+                        const hours = Math.floor(remaining / 3600);
+                        const minutes = Math.floor((remaining % 3600) / 60);
+                        const seconds = Math.floor(remaining % 60); // Use Math.floor to remove decimals
+                        formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+
+                    countdownElement.textContent = formattedTime;
+                    countdownElement.style.color = '#dc3545'; // Red color for countdown
+                };
+
+                // Update immediately
+                updateCountdown();
+                // Then update every second
+                const countdownInterval = setInterval(updateCountdown, 1000);
+            }
+
+            // Function to copy text to clipboard and provide feedback
+            window.copyToClipboard = async function(text, buttonElement) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    // Provide user feedback
+                    const originalText = buttonElement.textContent;
+                    buttonElement.textContent = 'Copied!';
+                    buttonElement.classList.add('copied');
+                    setTimeout(() => {
+                        buttonElement.textContent = originalText;
+                        buttonElement.classList.remove('copied');
+                    }, 2000); // Reset after 2 seconds
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    // Fallback: try using execCommand if modern clipboard API fails
+                    try {
+                        const textArea = document.createElement('textarea');
+                        textArea.value = text;
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        if (successful) {
+                            const originalText = buttonElement.textContent;
+                            buttonElement.textContent = 'Copied!';
+                            buttonElement.classList.add('copied');
+                            setTimeout(() => {
+                                buttonElement.textContent = originalText;
+                                buttonElement.classList.remove('copied');
+                            }, 2000);
+                        } else {
+                            alert('Failed to copy link. Please copy it manually.');
+                        }
+                    } catch (fallbackErr) {
+                        console.error('Fallback copy also failed: ', fallbackErr);
+                        alert('Failed to copy link. Please copy it manually.');
+                    }
+                }
+            };
+        });
+    </script>
+</body>
+</html>

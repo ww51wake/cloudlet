@@ -1,0 +1,30 @@
+{
+  "name": "cloudlet-file-share",
+  "version": "1.0.0",
+  "description": "Free temporary file sharing using Cloudflare Pages, KV, and Cache API",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy",
+    "kv:create": "wrangler kv:namespace create --env production",
+    "kv:create-preview": "wrangler kv:namespace create --preview --env production"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/cloudlet-file-share.git"
+  },
+  "keywords": ["cloudflare", "pages", "file-sharing", "temporary-storage", "serverless"],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/username/cloudlet-file-share/issues"
+  },
+  "homepage": "https://github.com/username/cloudlet-file-share#readme",
+  "dependencies": {
+    "nanoid": "^5.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20230419.0",
+    "wrangler": "^3.0.0"
+  }
+}

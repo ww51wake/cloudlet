@@ -1,0 +1,27 @@
+name = "cloudlet-file-share"
+compatibility_date = "2023-01-01"
+pages_build_output_dir = "public"
+
+# KV namespaces store metadata and access tokens for uploaded files
+
+# KV namespaces configuration for FILE_METADATA
+[[kv_namespaces]]
+binding = "FILE_METADATA"
+id = "07dccf32c76f470d93b26e2b2d853ae4"     # Production namespace ID
+preview_id = "a9d69966088146889f4e3fc7633d90f4"  # Preview namespace ID
+
+# KV namespaces configuration for FILE_TOKENS
+[[kv_namespaces]]
+binding = "FILE_TOKENS"
+id = "f832e5310f1542c199bb0d1b9061e539"     # Production namespace ID  
+preview_id = "8b2ecf9675b14e928e53f1c465366773"  # Preview namespace ID
+
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+
+# Preview environment configuration (for local development)
+[env.preview]
+[env.preview.vars]
+ENVIRONMENT = "preview"
